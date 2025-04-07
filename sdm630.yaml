@@ -1,0 +1,292 @@
+esphome:
+  name: sdm630
+  friendly_name: sdm630
+
+esp32:
+  board: az-delivery-devkit-v4
+  framework:
+    type: esp-idf
+
+
+# Enable logging
+logger:
+  baud_rate: 0
+  level: WARN
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: !YOURKEYGOESHERE!
+
+
+ota:
+  - platform: esphome
+    password: !SUPERSECRETPASSWORD!
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+
+web_server:
+  
+uart:
+  - id: uart_modbus_1
+    tx_pin: 17
+    rx_pin: 16
+    baud_rate: 9600
+    stop_bits: 1
+    parity: NONE
+    data_bits: 8
+  - id: uart_modbus_3
+    tx_pin: 26
+    rx_pin: 25
+    baud_rate: 9600
+    stop_bits: 1
+    parity: NONE
+    data_bits: 8
+    
+
+
+
+modbus:
+  - id: modbus1
+    flow_control_pin: 4 
+    uart_id: uart_modbus_1
+    #send_wait_time: 500ms
+    disable_crc: true
+  - id: modbus3
+    uart_id: uart_modbus_3
+    role: server
+  
+modbus_controller:
+  - id: sdm
+    address: 1
+    modbus_id: modbus1
+    update_interval: 500ms
+  - id: deye
+    address: 1
+    modbus_id: modbus3
+    server_registers:
+      - address: 0x000C
+        value_type: FP32
+        read_lambda: |-
+          return (id(L1_Power).state + 10);
+      - address: 0x000E
+        value_type: FP32
+        read_lambda: |-
+          return ( id(L2_Power).state +10 );
+      - address: 0x0010 # L3_Power
+        value_type: FP32
+        read_lambda: |-
+          return (id(L3_Power).state + 10 );
+      - address: 0x0048
+        value_type: FP32
+        read_lambda: |-
+          return (id(import_active_48).state);
+      - address: 0x004A
+        value_type: FP32
+        read_lambda: |-
+          return (id(export_active_4A).state);
+  
+
+
+    
+
+sensor:
+  - platform: homeassistant
+    entity_id: sensor.inverter_output_l1_power
+    id: inverter_l1_power_ha
+## Anfang Stromzaehler
+#  - platform: modbus_controller
+ #   modbus_controller_id: sdm
+#    name: SDM630 L1 Voltage
+  #  register_type: read
+   # address: 0x0000
+   # value_type: FP32
+   # unit_of_measurement: V
+   # device_class: "voltage"
+   # state_class: "measurement"
+   # accuracy_decimals: 1
+   # register_count: 18
+   # skip_updates: 5
+ # - platform: modbus_controller
+ #   modbus_controller_id: sdm
+ #   name: SDM630 L2 Voltage
+  #  register_type: read
+  #  address: 0x0002
+  #  value_type: FP32
+  #  device_class: "voltage"
+  #  state_class: "measurement"
+  #  unit_of_measurement: V
+  #  accuracy_decimals: 1 
+  #  skip_updates: 5
+  #- platform: modbus_controller
+ #   modbus_controller_id: sdm
+  #  name: SDM630 L3 Voltage
+  #  register_type: read
+   # address: 0x0004
+   # value_type: FP32
+  #  device_class: "voltage"
+   # state_class: "measurement"
+  #  unit_of_measurement: V
+   # accuracy_decimals: 1
+   # skip_updates: 5
+  #- platform: modbus_controller
+   # modbus_controller_id: sdm
+   # name: SDM630 L1 Current
+  #  register_type: read
+  #  address: 0x0006
+  #  value_type: FP32
+  #  device_class: "current"
+  #  state_class: "measurement"
+  #  unit_of_measurement: A
+   # accuracy_decimals: 2
+   # skip_updates: 5
+  #- platform: modbus_controller
+  #  modbus_controller_id: sdm
+  #  name: SDM630 L2 Current
+   # register_type: read
+   # address: 0x0008
+   # value_type: FP32
+  #  device_class: "current"
+  #  state_class: "measurement"
+  #  unit_of_measurement: A
+  #  accuracy_decimals: 2
+ #   skip_updates: 5
+  #- platform: modbus_controller
+   # modbus_controller_id: sdm
+   # name: SDM630 L3 Current
+   # register_type: read
+   # address: 0x000A
+   # value_type: FP32
+   # device_class: "current"
+   # state_class: "measurement"
+   # unit_of_measurement: A
+   # accuracy_decimals: 2
+   # skip_updates: 5
+  - platform: modbus_controller
+    modbus_controller_id: sdm
+    name: SDM630 L1 Power int
+    register_type: read
+    address: 0x000C
+    value_type: FP32
+    unit_of_measurement: W
+    device_class: "power"
+    id: L1_Power
+    state_class: "measurement"
+    accuracy_decimals: 2
+    internal: True
+  #  skip_updates: 5
+  - platform: modbus_controller
+    modbus_controller_id: sdm
+    name: SDM630 L2 Power int
+    register_type: read
+    address: 0x000E
+    value_type: FP32
+    unit_of_measurement: W
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    id: L2_Power
+    internal: True
+    #skip_updates: 5
+  - platform: modbus_controller
+    modbus_controller_id: sdm
+    name: SDM630 L3 Power int
+    register_type: read
+    address: 0x0010
+    value_type: FP32
+    unit_of_measurement: W
+    device_class: "power"
+    state_class: "measurement"
+    accuracy_decimals: 2
+    id: L3_Power
+    internal: True
+  #  skip_updates: 5
+  #- platform: modbus_controller
+ #   modbus_controller_id: sdm
+ #   name: SDM630 Total Power
+  #  register_type: read
+   # address: 0x0034
+   # value_type: FP32
+  #  unit_of_measurement: W
+  #  state_class: "measurement"
+   # device_class: "power"
+  #  accuracy_decimals: 1
+  #- platform: modbus_controller
+ #   modbus_controller_id: sdm
+ #   name: SDM630 Neutral Current
+  #  register_type: read
+  #  address: 0x0068
+   # value_type: FP32
+  #  unit_of_measurement: A
+   # state_class: "measurement"
+   # device_class: "current"
+  #  accuracy_decimals: 3
+   # skip_updates: 5
+  - platform: modbus_controller
+    modbus_controller_id: sdm
+    name: SDM630 Import Active Energy
+    register_type: read
+    address: 0x0048
+    value_type: FP32
+    unit_of_measurement: kWh
+    state_class: "total_increasing"
+    device_class: "energy"
+    accuracy_decimals: 2
+    skip_updates: 80
+    id: import_active_48
+  - platform: modbus_controller
+    modbus_controller_id: sdm
+    name: SDM630 Export Active Energy
+    register_type: read
+    address: 0x004A
+    value_type: FP32
+    unit_of_measurement: kWh
+    state_class: "total_increasing"
+    device_class: "energy"
+    accuracy_decimals: 2
+    skip_updates: 80
+    id: export_active_4A
+  #- platform: modbus_controller
+  #  modbus_controller_id: sdm
+  #  name: SDM630 Average line current THD
+  #  register_type: read
+  #  address: 0x00fa
+  #  value_type: FP32
+  #  unit_of_measurement: "%"
+  #  state_class: measurement
+  #  accuracy_decimals: 2
+  #  skip_updates: 80
+  #  id: average_thd_current
+
+  - platform: template
+    name: SDM630 L1 Power
+    unit_of_measurement: W
+    device_class: "power"
+    state_class: "measurement"  
+    update_interval: 1s
+    lambda: |-
+      return (id(L1_Power).state);
+
+  - platform: template
+    name: SDM630 L2 Power
+    unit_of_measurement: W
+    device_class: "power"
+    state_class: "measurement"  
+    update_interval: 1s
+    lambda: |-
+      return (id(L2_Power).state);
+
+  - platform: template
+    name: SDM630 L3 Power
+    unit_of_measurement: W
+    device_class: "power"
+    state_class: "measurement"  
+    update_interval: 1s
+    lambda: |-
+      return (id(L3_Power).state);
+
+
